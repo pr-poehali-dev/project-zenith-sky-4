@@ -1,3 +1,7 @@
-# project-zenith-sky-4
+# ДиджиталХаб — Лендинг цифрового агентства
 
-Initial repository setup for pr-poehali-dev/project-zenith-sky-4
+![Preview](https://cdn.poehali.dev/templates/animated-hero-ru/preview-ru-v5.jpg)
+
+Эффектный лендинг с анимированным hero-блоком для цифрового агентства или стартапа. Современный дизайн с плавными переходами и динамичной типографикой. Отлично подойдёт для презентации услуг по разработке, дизайну и маркетингу.
+
+`"tags": ["agency", "dark", "animations", "hero"]`
