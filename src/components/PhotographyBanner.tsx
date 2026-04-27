@@ -1,1035 +1,439 @@
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 const PhotographyBanner: React.FC = () => {
-  const [currentText, setCurrentText] = useState("")
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const texts = ["БИЗНЕС.", "БРЕНДЫ."]
+  const canvasRef1 = useRef<HTMLCanvasElement>(null)
+  const canvasRef2 = useRef<HTMLCanvasElement>(null)
+  const canvasRef3 = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const typeSpeed = isDeleting ? 40 : 100
-    const currentFullText = texts[currentIndex]
+    // Bar chart — зарплата
+    const c1 = canvasRef1.current
+    if (c1) {
+      const ctx = c1.getContext("2d")!
+      const data = [45, 65, 85, 110, 140]
+      const labels = ["2020", "2021", "2022", "2023", "2024"]
+      const colors = ["#3b82f6", "#60a5fa", "#93c5fd", "#2563eb", "#1d4ed8"]
+      const maxVal = 160
+      const barW = 36
+      const gap = 20
+      const offsetX = 40
+      const offsetY = 20
+      const chartH = c1.height - 50
 
-    const timer = setTimeout(() => {
-      if (!isDeleting) {
-        if (currentText.length < currentFullText.length) {
-          setCurrentText(currentFullText.substring(0, currentText.length + 1))
-        } else {
-          setTimeout(() => setIsDeleting(true), 1500)
-        }
-      } else {
-        if (currentText.length > 0) {
-          setCurrentText(currentText.substring(0, currentText.length - 1))
-        } else {
-          setIsDeleting(false)
-          setCurrentIndex((prevIndex) => (prevIndex + 1) % texts.length)
-        }
+      ctx.clearRect(0, 0, c1.width, c1.height)
+      ctx.strokeStyle = "rgba(255,255,255,0.1)"
+      ctx.lineWidth = 1
+      for (let i = 0; i <= 4; i++) {
+        const y = offsetY + (chartH / 4) * i
+        ctx.beginPath()
+        ctx.moveTo(offsetX, y)
+        ctx.lineTo(c1.width - 10, y)
+        ctx.stroke()
+        ctx.fillStyle = "rgba(255,255,255,0.4)"
+        ctx.font = "10px Inter"
+        ctx.fillText(String(Math.round(maxVal - (maxVal / 4) * i)), 2, y + 4)
       }
-    }, typeSpeed)
 
-    return () => clearTimeout(timer)
-  }, [currentText, currentIndex, isDeleting, texts])
+      data.forEach((val, i) => {
+        const barH = (val / maxVal) * chartH
+        const x = offsetX + i * (barW + gap)
+        const y = offsetY + chartH - barH
+
+        const grad = ctx.createLinearGradient(0, y, 0, y + barH)
+        grad.addColorStop(0, colors[i])
+        grad.addColorStop(1, "rgba(59,130,246,0.3)")
+        ctx.fillStyle = grad
+        ctx.beginPath()
+        ctx.roundRect(x, y, barW, barH, [4, 4, 0, 0])
+        ctx.fill()
+
+        ctx.fillStyle = "#fff"
+        ctx.font = "bold 11px Inter"
+        ctx.textAlign = "center"
+        ctx.fillText(val + "т", x + barW / 2, y - 5)
+
+        ctx.fillStyle = "rgba(255,255,255,0.6)"
+        ctx.font = "10px Inter"
+        ctx.fillText(labels[i], x + barW / 2, c1.height - 5)
+      })
+    }
+
+    // Donut chart — распределение по отраслям
+    const c2 = canvasRef2.current
+    if (c2) {
+      const ctx = c2.getContext("2d")!
+      const segments = [
+        { val: 38, color: "#3b82f6", label: "Оборонка" },
+        { val: 28, color: "#10b981", label: "Металлургия" },
+        { val: 18, color: "#f59e0b", label: "Приборостроение" },
+        { val: 16, color: "#8b5cf6", label: "Авто/ж.д." },
+      ]
+      const total = segments.reduce((s, x) => s + x.val, 0)
+      const cx = c2.width / 2 - 10
+      const cy = c2.height / 2
+      const r = 65
+      const ir = 38
+
+      ctx.clearRect(0, 0, c2.width, c2.height)
+      let startAngle = -Math.PI / 2
+
+      segments.forEach((seg) => {
+        const angle = (seg.val / total) * 2 * Math.PI
+        ctx.beginPath()
+        ctx.moveTo(cx, cy)
+        ctx.arc(cx, cy, r, startAngle, startAngle + angle)
+        ctx.closePath()
+        ctx.fillStyle = seg.color
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.arc(cx, cy, ir, 0, 2 * Math.PI)
+        ctx.fillStyle = "#0f172a"
+        ctx.fill()
+
+        startAngle += angle
+      })
+
+      ctx.fillStyle = "#fff"
+      ctx.font = "bold 14px Inter"
+      ctx.textAlign = "center"
+      ctx.fillText("Вакансии", cx, cy - 5)
+      ctx.font = "11px Inter"
+      ctx.fillStyle = "rgba(255,255,255,0.6)"
+      ctx.fillText("по отраслям", cx, cy + 10)
+
+      let legendY = 20
+      segments.forEach((seg) => {
+        ctx.fillStyle = seg.color
+        ctx.fillRect(c2.width - 95, legendY, 10, 10)
+        ctx.fillStyle = "rgba(255,255,255,0.8)"
+        ctx.font = "10px Inter"
+        ctx.textAlign = "left"
+        ctx.fillText(`${seg.label} ${seg.val}%`, c2.width - 80, legendY + 9)
+        legendY += 22
+      })
+    }
+
+    // Line chart — потребность рынка
+    const c3 = canvasRef3.current
+    if (c3) {
+      const ctx = c3.getContext("2d")!
+      const dataLine = [120, 145, 160, 190, 230, 270, 310]
+      const labelsLine = ["2018", "2019", "2020", "2021", "2022", "2023", "2024"]
+      const maxV = 350
+      const padL = 35
+      const padB = 25
+      const padT = 20
+      const w = c3.width - padL - 10
+      const h = c3.height - padB - padT
+
+      ctx.clearRect(0, 0, c3.width, c3.height)
+
+      ctx.strokeStyle = "rgba(255,255,255,0.1)"
+      ctx.lineWidth = 1
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + (h / 4) * i
+        ctx.beginPath()
+        ctx.moveTo(padL, y)
+        ctx.lineTo(c3.width - 10, y)
+        ctx.stroke()
+        ctx.fillStyle = "rgba(255,255,255,0.4)"
+        ctx.font = "10px Inter"
+        ctx.textAlign = "right"
+        ctx.fillText(String(Math.round(maxV - (maxV / 4) * i)), padL - 3, y + 4)
+      }
+
+      const grad = ctx.createLinearGradient(0, padT, 0, padT + h)
+      grad.addColorStop(0, "rgba(59,130,246,0.4)")
+      grad.addColorStop(1, "rgba(59,130,246,0)")
+      ctx.fillStyle = grad
+      ctx.beginPath()
+      dataLine.forEach((val, i) => {
+        const x = padL + (i / (dataLine.length - 1)) * w
+        const y = padT + h - (val / maxV) * h
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.lineTo(padL + w, padT + h)
+      ctx.lineTo(padL, padT + h)
+      ctx.closePath()
+      ctx.fill()
+
+      ctx.strokeStyle = "#3b82f6"
+      ctx.lineWidth = 2.5
+      ctx.lineJoin = "round"
+      ctx.beginPath()
+      dataLine.forEach((val, i) => {
+        const x = padL + (i / (dataLine.length - 1)) * w
+        const y = padT + h - (val / maxV) * h
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+
+      dataLine.forEach((val, i) => {
+        const x = padL + (i / (dataLine.length - 1)) * w
+        const y = padT + h - (val / maxV) * h
+        ctx.beginPath()
+        ctx.arc(x, y, 4, 0, 2 * Math.PI)
+        ctx.fillStyle = "#3b82f6"
+        ctx.fill()
+        ctx.strokeStyle = "#fff"
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+
+        ctx.fillStyle = "rgba(255,255,255,0.6)"
+        ctx.font = "9px Inter"
+        ctx.textAlign = "center"
+        ctx.fillText(labelsLine[i], x, padT + h + 14)
+      })
+    }
+  }, [])
 
   return (
-    <>
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0a0e1a 0%, #0f172a 40%, #0d1b2a 100%)",
+      fontFamily: "'Inter', 'Montserrat', sans-serif",
+      color: "#fff",
+      padding: "0",
+      overflow: "hidden",
+    }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Inter:wght@400&display=swap');
-
-        .photography-banner,
-        .photography-banner * {
-          box-sizing: border-box;
-        }
-
-        .photography-banner {
-          margin: 0;
-          background-color: #002b36;
-          background-image: url("https://www.yudiz.com/codepen/photography-banner/frame.png");
-          background-size: cover;
-          background-repeat: no-repeat;
-          overflow-x: hidden;
-          min-height: 100vh;
-          width: 100%;
-        }
-
-        .photography-banner *::selection {
-          background-color: rgba(241, 231, 40, 0.2);
-          color: #ffffff;
-        }
-
-        .info-section {
-          height: 100vh;
-          min-height: 780px;
-          padding: 0 0 0 30px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          position: relative;
-          z-index: 1;
-          user-select: none;
-          overflow: hidden;
-        }
-
-        .info-section::before {
-          content: "";
-          border-radius: 197.5px 0px;
-          opacity: 0.4;
-          background: #d33682;
-          filter: blur(162px);
-          height: 35%;
-          width: 55%;
-          position: absolute;
-          top: -40%;
-          left: -66%;
-          transform: translate(50%, 50%);
-          z-index: -1;
-        }
-
-        .left-part {
-          padding: 20px 0 0;
-          overflow: hidden;
-        }
-
-        .left-part h1 {
-          margin: 0;
-          color: #fff;
-          font-family: "Montserrat", sans-serif;
-          font-weight: 700;
-          font-size: clamp(48px, 12vw, 160px);
-          line-height: 0.75;
-          font-style: normal;
-          text-transform: uppercase;
-        }
-
-        .left-part h1 .text {
-          color: #d33682;
-          display: block;
-          height: clamp(100px, 15vw, 120px);
-        }
-
-        .left-part h1 .d-flex {
-          display: flex;
-          align-items: center;
-        }
-
-        .left-part h1 .char {
-          transform: translateY(0);
-          transition: transform 0.5s;
-          animation: slideUp 0.3s ease-out forwards;
-        }
-
-        .typed-cursor {
-          display: none !important;
-        }
-
-        @keyframes slideUp {
-          from {
-            transform: translateY(-515px);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-
-        .left-part p {
-          width: 72%;
-          margin: 20px 0 0;
-          color: #fff;
-          font-size: 16px;
-          font-style: normal;
-          font-weight: normal;
-          line-height: 2;
-          font-family: "Montserrat";
-          opacity: 0.8;
-        }
-
-        .book-link {
-          margin: 40px 0 0;
-          padding: 0;
-          border: 0;
-          font-size: 56px;
-          line-height: 1;
-          color: #f1f1f1;
-          letter-spacing: 0.25px;
-          text-transform: uppercase;
-          font-family: "Montserrat";
-          font-weight: 300;
-          font-style: normal;
-          display: inline-flex;
-          align-items: center;
-          gap: 28px;
-          position: relative;
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        .book-link .linktext {
-          position: relative;
-          overflow: hidden;
-          display: inline-block;
-        }
-
-        .book-link .linktext::before {
-          position: absolute;
-          content: "";
-          left: 0;
-          bottom: 6px;
-          width: 100%;
-          height: 3px;
-          background-color: #ffffff;
-          transform: scaleX(1);
-          transition: transform 250ms ease-in-out;
-          transform-origin: 0 0;
-        }
-
-        .book-link:hover .linktext:before {
-          transform: scaleX(0);
-          transform-origin: 100% 100%;
-        }
-
-        .book-link .arrow {
-          height: 36px;
-          width: 36px;
-          top: -5px;
-          display: inline-block;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .book-link .arrow::before,
-        .book-link .arrow::after {
-          position: absolute;
-          content: "";
-          background-color: #d33682;
-          transition: all ease-in-out 0.35s;
-          transform-origin: 0 0;
-          border-radius: 30px;
-        }
-
-        .book-link .arrow::before {
-          height: 2px;
-          width: 100%;
-          top: 0;
-          right: 0;
-        }
-
-        .book-link .arrow::after {
-          width: 2px;
-          height: 100%;
-          top: 0;
-          right: 0;
-        }
-
-        .book-link:hover .arrow::before {
-          width: 65%;
-        }
-
-        .book-link:hover .arrow::after {
-          height: 65%;
-        }
-
-        .book-link .arrow span {
-          background-color: #d33682;
-          height: 2px;
-          width: 100%;
-          display: inline-block;
-          transform: rotate(-45deg) translate(-3px, -1px);
-          transform-origin: right top;
-          border-radius: 30px;
-          position: relative;
-          transition: all ease-in-out 0.35s;
-          position: absolute;
-          top: 0;
-          left: 0;
-        }
-
-        .book-link .arrow span::before {
-          background-color: #d33682;
-          content: "";
-          height: 100%;
-          width: 15px;
-          left: -15px;
-          top: 0;
-          position: absolute;
-        }
-
-        .right-part {
-          background-color: transparent;
-          height: 588px;
-          width: 588px;
-          margin: 0 0 0 auto;
-          margin-right: -14px;
-          display: block;
-          position: relative;
-          z-index: 1;
-          flex-shrink: 0;
-        }
-
-        .right-part::before {
-          content: "";
-          border-radius: 197.5px 0px;
-          opacity: 0.4;
-          background: #d33682;
-          filter: blur(112px);
-          height: 35%;
-          width: 55%;
-          position: absolute;
-          top: 50%;
-          right: 33%;
-          transform: translate(50%, -50%);
-          z-index: -1;
-        }
-
-        .particles-container {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          z-index: 0;
-        }
-
-        .particle {
-          position: absolute;
-          background: rgba(211, 54, 130, 0.6);
-          border-radius: 50%;
-          pointer-events: none;
-          animation: float linear infinite;
-        }
-
-        .particle:nth-child(odd) {
-          background: rgba(203, 75, 22, 0.4);
-        }
-
-        .particle:nth-child(3n) {
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        @keyframes float {
-          0% {
-            transform: translateX(-100px) translateY(0px) rotate(0deg);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(calc(100vw + 100px)) translateY(-100px) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        .bg-line {
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 50%;
-          height: 85px;
-          z-index: -1;
-          overflow: hidden;
-          display: flex;
-          display: -webkit-flex;
-          white-space: nowrap;
-        }
-
-        .bg-line img {
-          position: relative;
-          flex-shrink: 0;
-          -webkit-flex-shrink: 0;
-          animation: 26s linear infinite;
-        }
-
-        .bg-line img:nth-child(1) {
-          animation-name: first-text;
-        }
-
-        .bg-line img:nth-child(2) {
-          animation-name: second-text;
-        }
-
-        @keyframes first-text {
-          50% {
-            transform: translateX(-100%);
-            opacity: 1;
-          }
-          50.05% {
-            opacity: 0;
-          }
-          50.1% {
-            transform: translateX(100%);
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(0%);
-          }
-        }
-
-        @keyframes second-text {
-          50% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(-200%);
-          }
-          0% {
-            transform: translateX(0%);
-          }
-        }
-
-        .bg-dash-circle {
-          position: absolute;
-          bottom: -35px;
-          right: -13px;
-          z-index: -1;
-          width: 180px;
-          aspect-ratio: 1/1;
-        }
-
-        .bg-dash-circle img {
-          height: 100%;
-          width: 100%;
-          object-fit: cover;
-          object-position: center center;
-          animation: circle-rotate 18s linear infinite;
-        }
-
-        @keyframes circle-rotate {
-          0% {
-            transform: rotate(0);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-
-        .hero-image {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 80%;
-          height: auto;
-          z-index: 2;
-          border-radius: 12px;
-          opacity: 0.9;
-        }
-
-        @media screen and (min-width: 1500px) {
-          .info-section {
-            padding-left: 120px;
-          }
-        }
-
-        @media screen and (min-width: 1400px) {
-          .info-section {
-            padding-left: 100px;
-          }
-        }
-
-        @media screen and (max-width: 1199px) {
-          .bg-line {
-            height: 68px;
-          }
-          .right-part {
-            height: 400px;
-            width: 400px;
-          }
-          .right-part .d-flex {
-            gap: 20px;
-          }
-          .bg-dash-circle {
-            width: 130px;
-          }
-        }
-
-        @media screen and (max-width: 767px) {
-          .photography-banner {
-            overflow-x: hidden;
-          }
-
-          .info-section {
-            display: block;
-            padding: 0;
-            overflow: visible;
-            min-height: auto;
-            height: auto;
-          }
-
-          .bg-line {
-            height: 52px;
-          }
-
-          .left-part {
-            padding: 40px 16px 60px;
-            overflow: visible;
-          }
-
-          .right-part {
-            height: 334px;
-            width: 334px;
-            margin: 0 auto;
-            margin-right: auto;
-          }
-
-          .left-part h1 .text {
-            height: 88px;
-          }
-
-          .left-part p {
-            font-size: 12px;
-            width: 96%;
-          }
-
-          .bg-dash-circle {
-            width: 80px;
-          }
-        }
-
-        .features-section {
-          padding: 100px 30px;
-          background-color: #073642;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .features-section::before {
-          content: "";
-          border-radius: 197.5px 0px;
-          opacity: 0.3;
-          background: #d33682;
-          filter: blur(140px);
-          height: 40%;
-          width: 40%;
-          position: absolute;
-          top: 20%;
-          right: -20%;
-          z-index: -1;
-        }
-
-        .features-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-          gap: 60px;
-          align-items: center;
-        }
-
-        .features-content h2 {
-          color: #fff;
-          font-family: "Montserrat", sans-serif;
-          font-weight: 700;
-          font-size: clamp(60px, 8vw, 120px);
-          line-height: 0.9;
-          margin: 0 0 30px;
-          text-transform: uppercase;
-        }
-
-        .features-content h2 .highlight {
-          color: #d33682;
-        }
-
-        .features-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .feature-item {
-          padding: 25px 0;
-          border-bottom: 1px solid #333;
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .feature-icon {
-          width: 50px;
-          height: 50px;
-          background: #d33682;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          font-weight: bold;
-          color: #002b36;
-          flex-shrink: 0;
-        }
-
-        .feature-text h3 {
-          color: #fff;
-          font-family: "Montserrat";
-          font-size: 18px;
-          margin: 0 0 8px;
-          text-transform: uppercase;
-        }
-
-        .feature-text p {
-          color: #aaa;
-          font-family: "Inter", sans-serif;
-          font-size: 14px;
-          margin: 0;
-          line-height: 1.6;
-        }
-
-        .testimonials-section {
-          padding: 100px 30px;
-          background-color: #002b36;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .testimonials-section::before {
-          content: "";
-          border-radius: 197.5px 0px;
-          opacity: 0.4;
-          background: #d33682;
-          filter: blur(120px);
-          height: 50%;
-          width: 30%;
-          position: absolute;
-          top: 50%;
-          left: -15%;
-          transform: translateY(-50%);
-          z-index: -1;
-        }
-
-        .testimonials-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          text-align: center;
-        }
-
-        .testimonials-title {
-          color: #fff;
-          font-family: "Montserrat", sans-serif;
-          font-weight: 700;
-          font-size: clamp(60px, 8vw, 100px);
-          line-height: 0.9;
-          margin: 0 0 80px;
-          text-transform: uppercase;
-        }
-
-        .testimonials-marquee {
-          display: flex;
-          animation: scroll 30s linear infinite;
-          gap: 40px;
-          width: max-content;
-        }
-
-        .testimonials-marquee:hover {
-          animation-play-state: paused;
-        }
-
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        .testimonial-card {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid #333;
-          border-radius: 20px;
-          padding: 40px 30px;
-          position: relative;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .infog-card {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
           backdrop-filter: blur(10px);
-          width: 400px;
-          flex-shrink: 0;
         }
-
-        .testimonial-quote {
-          color: #fff;
-          font-family: "Inter", sans-serif;
-          font-weight: 400;
-          font-size: 16px;
-          line-height: 1.8;
-          margin: 0 0 30px;
-          font-style: italic;
+        .accent-blue { color: #3b82f6; }
+        .accent-green { color: #10b981; }
+        .accent-yellow { color: #f59e0b; }
+        .tag {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
         }
-
-        .testimonial-author {
-          display: flex;
-          font-family: "Inter", sans-serif;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .author-avatar {
-          width: 50px;
-          height: 50px;
-          border-radius: 50%;
-          background: #d33682;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          color: #002b36;
-        }
-
-        .author-info h4 {
-          color: #cb4b16;
-          font-family: "Inter", sans-serif;
-          font-size: 14px;
-          margin: 0;
-          text-transform: uppercase;
-        }
-
-        .author-info p {
-          color: #aaa;
-          font-family: "Inter", sans-serif;
-          font-size: 12px;
-          margin: 5px 0 0;
-        }
-
-        .cta-section {
-          padding: 120px 30px;
-          background-color: #073642;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .cta-section::before {
-          content: "";
-          border-radius: 197.5px 0px;
-          opacity: 0.6;
-          background: #d33682;
-          filter: blur(180px);
-          height: 60%;
-          width: 80%;
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: -1;
-        }
-
-        .cta-container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .cta-title {
-          color: #fff;
-          font-family: "Montserrat", sans-serif;
-          font-weight: 700;
-          font-size: clamp(80px, 12vw, 160px);
-          line-height: 0.8;
-          margin: 0 0 30px;
-          text-transform: uppercase;
-        }
-
-        .cta-subtitle {
-          color: #d33682;
-          font-family: "Montserrat";
-          font-size: 26px;
-          line-height: 1.6;
-          margin: 0 0 50px;
-          max-width: 600px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .cta-buttons {
-          display: flex;
-          gap: 30px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .cta-button {
-          padding: 18px 40px;
-          background: #d33682;
-          color: #002b36;
-          text-decoration: none;
-          font-family: "Montserrat";
-          font-size: 16px;
-          font-weight: bold;
-          text-transform: uppercase;
-          border-radius: 50px;
-          transition: all 0.3s ease;
-          border: 2px solid #d33682;
-        }
-
-        .cta-button:hover {
-          background: transparent;
-          color: #d33682;
-        }
-
-        .cta-button.secondary {
-          background: transparent;
-          color: #fff;
-          border: 2px solid #fff;
-        }
-
-        .cta-button.secondary:hover {
-          background: transparent;
-          color: #d33682;
-          border: 2px solid #d33682;
-        }
-
-        @media screen and (max-width: 1199px) {
-          .features-section,
-          .testimonials-section,
-          .cta-section {
-            padding: 80px 20px;
-          }
-          .features-container {
-            gap: 40px;
-          }
-          .testimonials-marquee {
-            gap: 30px;
-          }
-          .cta-buttons {
-            gap: 20px;
-          }
-        }
-
-        @media screen and (max-width: 767px) {
-          .features-section,
-          .testimonials-section,
-          .cta-section {
-            padding: 60px 16px;
-          }
-          .features-container {
-            grid-template-columns: 1fr;
-            gap: 30px;
-          }
-          .testimonials-marquee {
-            gap: 25px;
-          }
-          .testimonial-card {
-            padding: 30px 20px;
-          }
-          .cta-buttons {
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-          }
-          .cta-button {
-            width: 100%;
-            max-width: 300px;
-          }
-        }
+        .tag-blue { background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .tag-green { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .tag-yellow { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .divider { width: 100%; height: 1px; background: rgba(255,255,255,0.07); margin: 0; }
+        .stat-num { font-size: 32px; font-weight: 800; line-height: 1; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
       `}</style>
 
-      <div className="photography-banner">
-        <main>
-          <section className="info-section">
-            <div className="left-part">
-              <h1>
-                <span className="d-flex">
-                  {["С", "О", "З", "Д", "А", "Ё", "М"].map((char, index) => (
-                    <span key={index} className="char tracking-tighter" style={{ animationDelay: `${index * 0.08}s` }}>
-                      {char === " " ? "\u00A0" : char}
-                    </span>
-                  ))}
-                </span>
-                <span className="text tracking-tighter">{currentText}</span>
-              </h1>
-              <p className="tracking-widest">
-                Помогаем предпринимателям запускать цифровые продукты быстрее с помощью современных технологий
-              </p>
-              <a href="#cta" className="book-link">
-                <span className="linktext tracking-tighter text-3xl">Начать проект</span>
-                <span className="arrow">
-                  <span></span>
-                </span>
-              </a>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 24px" }}>
+
+        {/* HEADER */}
+        <div style={{ textAlign: "center", marginBottom: 28, position: "relative" }}>
+          <div style={{
+            position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)",
+            width: 500, height: 200, background: "radial-gradient(ellipse, rgba(59,130,246,0.15) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+          <span className="tag tag-blue" style={{ marginBottom: 10, display: "inline-block" }}>ИНФОГРАФИКА • ЧЕЛЯБИНСКАЯ ОБЛАСТЬ • 2024</span>
+          <h1 style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: "clamp(22px, 4vw, 42px)",
+            fontWeight: 900,
+            lineHeight: 1.15,
+            background: "linear-gradient(90deg, #fff 0%, #93c5fd 50%, #60a5fa 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            marginBottom: 8,
+          }}>
+            Инженер-технолог машиностроения
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15 }}>
+            Одна из наиболее <span style={{ color: "#f59e0b" }}>востребованных</span> инженерных специальностей Урала
+          </p>
+        </div>
+
+        {/* TOP STATS */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
+          {[
+            { num: "1 400+", label: "Вакансий в регионе", sub: "по данным hh.ru 2024", color: "#3b82f6" },
+            { num: "↑ 34%", label: "Рост спроса за 3 года", sub: "оборонный заказ + нацпроекты", color: "#10b981" },
+            { num: "85–140", label: "Зарплата, тыс. ₽", sub: "медиана — 105 тыс. ₽", color: "#f59e0b" },
+            { num: "97%", label: "Трудоустройство", sub: "выпускников ЮУрГУ/ЧГУ", color: "#8b5cf6" },
+          ].map((s, i) => (
+            <div key={i} className="infog-card" style={{ padding: "18px 16px", textAlign: "center" }}>
+              <div className="stat-num" style={{ color: s.color }}>{s.num}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6, color: "#fff" }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{s.sub}</div>
             </div>
-            <div className="right-part">
-              <div className="particles-container">
-                {Array.from({ length: 20 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="particle"
-                    style={{
-                      width: `${Math.random() * 8 + 4}px`,
-                      height: `${Math.random() * 8 + 4}px`,
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                      animationDuration: `${Math.random() * 20 + 15}s`,
-                      animationDelay: `${Math.random() * 10}s`,
-                    }}
-                  />
+          ))}
+        </div>
+
+        {/* MAIN GRID */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+
+          {/* LEFT COL */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* Описание */}
+            <div className="infog-card" style={{ padding: "20px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(59,130,246,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚙️</div>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Кто такой инженер-технолог?</span>
+              </div>
+              <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.7 }}>
+                Специалист, который разрабатывает и оптимизирует <span style={{ color: "#60a5fa" }}>производственные процессы</span> — от чертежа до готовой детали. Контролирует качество, выбирает оборудование и инструменты, снижает себестоимость изделий.
+              </p>
+              <div style={{ marginTop: 14 }}>
+                {["Разработка техпроцессов", "Контроль качества ОТК", "Оптимизация производства", "Работа с ЧПУ и CAD/CAM"].map((t, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <div className="dot" style={{ background: "#3b82f6" }} />
+                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>{t}</span>
+                  </div>
                 ))}
               </div>
-              <div className="bg-line">
-                <img
-                  src="https://www.yudiz.com/codepen/photography-banner/wave.svg"
-                  alt="Line"
-                  style={{ filter: "hue-rotate(280deg) saturate(1.5)" }}
-                />
-                <img
-                  src="https://www.yudiz.com/codepen/photography-banner/wave.svg"
-                  alt="Line"
-                  style={{ filter: "hue-rotate(280deg) saturate(1.5)" }}
-                />
-              </div>
-              <div className="bg-dash-circle">
-                <img
-                  src="https://www.yudiz.com/codepen/photography-banner/dash-circle.svg"
-                  alt="dash-circle"
-                  style={{ filter: "hue-rotate(280deg) saturate(1.5)" }}
-                />
-              </div>
             </div>
-          </section>
 
-          <section className="features-section">
-            <div className="features-container">
-              <div className="features-content">
-                <h2>Почему выбирают нас?</h2>
+            {/* Почему востребован */}
+            <div className="infog-card" style={{ padding: "20px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔥</div>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Почему востребован в Челябинске?</span>
               </div>
-              <ul className="features-list">
-                <li className="feature-item">
-                  <div className="feature-icon">01</div>
-                  <div className="feature-text">
-                    <h3>Опытная команда</h3>
-                    <p className="font-light tracking-wider">
-                      Более 10 лет опыта в разработке цифровых продуктов для бизнеса любого масштаба
-                    </p>
-                  </div>
-                </li>
-                <li className="feature-item">
-                  <div className="feature-icon">02</div>
-                  <div className="feature-text">
-                    <h3>Современные технологии</h3>
-                    <p className="tracking-wider">
-                      Используем передовые инструменты и фреймворки для создания быстрых и надёжных решений
-                    </p>
-                  </div>
-                </li>
-                <li className="feature-item">
-                  <div className="feature-icon">03</div>
-                  <div className="feature-text">
-                    <h3>Индивидуальный подход</h3>
-                    <p className="tracking-wider">
-                      Каждый проект уникален — мы адаптируем решения под ваши конкретные задачи и цели
-                    </p>
-                  </div>
-                </li>
-                <li className="feature-item">
-                  <div className="feature-icon">04</div>
-                  <div className="feature-text">
-                    <h3>Поддержка 24/7</h3>
-                    <p className="tracking-wider">
-                      Обеспечиваем техническую поддержку и сопровождение на всех этапах работы
-                    </p>
-                  </div>
-                </li>
-              </ul>
+              {[
+                { icon: "🛡️", text: "Оборонный заказ увеличен в 3× — ЧТЗ, ЗВО, КЗ", color: "#f59e0b" },
+                { icon: "🏗️", text: "90+ машиностроительных заводов в регионе", color: "#10b981" },
+                { icon: "📉", text: "Дефицит кадров: на 1 выпускника — 4 вакансии", color: "#ef4444" },
+                { icon: "🚀", text: "Цифровизация производства — нужны IT+инженеры", color: "#8b5cf6" },
+                { icon: "💰", text: "Нацпроект «Производительность труда»", color: "#3b82f6" },
+              ].map((r, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{r.icon}</span>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>{r.text}</span>
+                </div>
+              ))}
             </div>
-          </section>
+          </div>
 
-          <section className="testimonials-section">
-            <div className="testimonials-container">
-              <h2 className="testimonials-title">Отзывы клиентов</h2>
-              <div className="testimonials-marquee">
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "Команда полностью изменила наш подход к цифровому присутствию. Результаты превзошли все ожидания."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">АС</div>
-                    <div className="author-info">
-                      <h4>Алексей Смирнов</h4>
-                      <p>Директор по развитию</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "Профессиональный подход и внимание к деталям. Запустили проект в рекордные сроки без потери качества."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">МК</div>
-                    <div className="author-info">
-                      <h4>Мария Козлова</h4>
-                      <p>Основатель стартапа</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "От идеи до запуска — всё прошло гладко. Рекомендую всем, кто ценит качество и скорость."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">ДВ</div>
-                    <div className="author-info">
-                      <h4>Дмитрий Волков</h4>
-                      <p>Предприниматель</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "Команда полностью изменила наш подход к цифровому присутствию. Результаты превзошли все ожидания."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">АС</div>
-                    <div className="author-info">
-                      <h4>Алексей Смирнов</h4>
-                      <p>Директор по развитию</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "Профессиональный подход и внимание к деталям. Запустили проект в рекордные сроки без потери качества."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">МК</div>
-                    <div className="author-info">
-                      <h4>Мария Козлова</h4>
-                      <p>Основатель стартапа</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-card">
-                  <p className="testimonial-quote">
-                    "От идеи до запуска — всё прошло гладко. Рекомендую всем, кто ценит качество и скорость."
-                  </p>
-                  <div className="testimonial-author">
-                    <div className="author-avatar">ДВ</div>
-                    <div className="author-info">
-                      <h4>Дмитрий Волков</h4>
-                      <p>Предприниматель</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* MIDDLE COL */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-          <section className="cta-section" id="cta">
-            <div className="cta-container">
-              <h2 className="cta-title text-center">Готовы начать?</h2>
-              <p className="cta-subtitle">
-                Присоединяйтесь к сотням компаний, которые уже трансформировали свой бизнес. Ваш путь к успеху начинается здесь.
-              </p>
-              <div className="cta-buttons">
-                <a href="#" className="cta-button">
-                  Обсудить проект
-                </a>
-                <a href="#" className="cta-button secondary">
-                  Посмотреть кейсы
-                </a>
+            {/* Bar chart зарплата */}
+            <div className="infog-card" style={{ padding: "18px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>💸 Рост зарплат (тыс. ₽/мес)</span>
+                <span className="tag tag-green">+211% за 5 лет</span>
+              </div>
+              <canvas ref={canvasRef1} width={280} height={160} style={{ width: "100%", height: 160 }} />
+              <div style={{ display: "flex", gap: 16, marginTop: 10, justifyContent: "center" }}>
+                {[["Нач.", "55–70"], ["Опыт 3+", "85–110"], ["Сеньор", "130–160+"]].map(([l, v], i) => (
+                  <div key={i} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa" }}>{v}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{l}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          </section>
-        </main>
+
+            {/* Line chart — рост вакансий */}
+            <div className="infog-card" style={{ padding: "18px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>📈 Вакансии в регионе</span>
+                <span className="tag tag-blue">+158%</span>
+              </div>
+              <canvas ref={canvasRef3} width={280} height={150} style={{ width: "100%", height: 150 }} />
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 6, textAlign: "center" }}>количество открытых вакансий по годам</p>
+            </div>
+
+            {/* Donut */}
+            <div className="infog-card" style={{ padding: "18px 16px" }}>
+              <span style={{ fontWeight: 700, fontSize: 13, display: "block", marginBottom: 8 }}>🏭 Распределение по отраслям</span>
+              <canvas ref={canvasRef2} width={280} height={120} style={{ width: "100%", height: 120 }} />
+            </div>
+          </div>
+
+          {/* RIGHT COL */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* Где работать */}
+            <div className="infog-card" style={{ padding: "20px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(16,185,129,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🏭</div>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Где работать</span>
+              </div>
+              {[
+                { name: "ЧТЗ — Уралтрак", spec: "тракторы, гусеничная техника", sal: "90–130т", tag: "tag-blue" },
+                { name: "Завод «Вибромашина»", spec: "промышленное оборудование", sal: "85–120т", tag: "tag-green" },
+                { name: "ПГ «КОНАР»", spec: "нефтегазовое машиностроение", sal: "95–145т", tag: "tag-yellow" },
+                { name: "КЗ «Станкомаш»", spec: "оборонная промышленность", sal: "100–160т", tag: "tag-blue" },
+                { name: "ЧКПЗ", spec: "автокомпоненты, поковки", sal: "80–115т", tag: "tag-green" },
+                { name: "Метран (Emerson)", spec: "приборостроение", sal: "95–130т", tag: "tag-yellow" },
+              ].map((w, i) => (
+                <div key={i} style={{ padding: "8px 0", borderBottom: i < 5 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>{w.name}</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{w.spec}</div>
+                    </div>
+                    <span className={`tag ${w.tag}`} style={{ flexShrink: 0, marginLeft: 8 }}>{w.sal}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Где учиться */}
+            <div className="infog-card" style={{ padding: "20px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(139,92,246,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🎓</div>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>Где учиться</span>
+              </div>
+              {[
+                { name: "ЮУрГУ", prog: "Технология машиностроения", dur: "4 года", type: "Бакалавриат", color: "#8b5cf6" },
+                { name: "ЧГУ им. Курчатова", prog: "Машиностроение", dur: "4 года", type: "Бакалавриат", color: "#3b82f6" },
+                { name: "МГТУ им. Носова (Магнитогорск)", prog: "Технологические машины", dur: "4 года", type: "Бакалавриат", color: "#10b981" },
+                { name: "ЮУрГУ", prog: "Технология машиностроения", dur: "2 года", type: "Магистратура", color: "#f59e0b" },
+                { name: "ЧМТ, ЧМК", prog: "Технология машиностроения", dur: "3,5 года", type: "СПО/Колледж", color: "#ef4444" },
+              ].map((u, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 3, borderRadius: 3, flexShrink: 0, alignSelf: "stretch", background: u.color, minHeight: 36 }} />
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>{u.name}</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{u.prog}</div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                      <span className="tag tag-blue" style={{ fontSize: 10 }}>{u.type}</span>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: "20px" }}>⏱ {u.dur}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM BAR */}
+        <div className="infog-card" style={{ marginTop: 14, padding: "16px 20px", display: "flex", gap: 24, justifyContent: "space-around", flexWrap: "wrap" }}>
+          {[
+            { icon: "🎯", title: "Карьерный рост", text: "Технолог → Ст. технолог → Нач. ТБ → Гл. технолог → Директор по производству" },
+            { icon: "💻", title: "Цифровые навыки", text: "САПР (AutoCAD, SolidWorks, КОМПАС), CAM-системы, 1С:Производство, MES-системы" },
+            { icon: "🌍", title: "Перспективы", text: "ОПК, импортозамещение, «Сделано в России» — спрос растёт быстрее, чем выпуск кадров" },
+          ].map((b, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: "1 1 250px" }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{b.icon}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{b.title}</div>
+                <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>{b.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
+          Источники: hh.ru, Министерство труда Челябинской области, открытые данные предприятий • 2024
+        </div>
       </div>
-    </>
+    </div>
   )
 }
 
